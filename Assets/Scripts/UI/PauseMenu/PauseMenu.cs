@@ -1,12 +1,17 @@
 using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEngine.Playables;
+using UnityEngine.SceneManagement;
 
 namespace UI.PauseMenu
 {
     public class PauseMenu : MonoBehaviour
     {
+        [Header("Properties")]
         [SerializeField] private protected Canvas _pauseMenu;
         [SerializeField] private protected Canvas _optionsMenu;
+
+        [Header("Timeline")]
+        [SerializeField] private PlayableDirector _startGameTimeline;
 
         public static bool GameIsPaused;
         
@@ -25,12 +30,18 @@ namespace UI.PauseMenu
 
         public void Quit()
         {
-            Application.Quit();
+            _startGameTimeline.gameObject.SetActive(false);
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(0);
         }
 
         public void ResetMenu()
         {
-            GameIsPaused = true;
+            if (!GameIsPaused)
+                GameIsPaused = true;
+            else
+                GameIsPaused = false;
+            
             _pauseMenu.gameObject.SetActive(true);
             _optionsMenu.gameObject.SetActive(false);
         }

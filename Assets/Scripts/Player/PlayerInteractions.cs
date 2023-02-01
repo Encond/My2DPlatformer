@@ -1,3 +1,4 @@
+using Enemy.AnimationsManager;
 using Enemy.Attacks;
 using Player.AnimationsManager;
 using UI.PauseMenu;
@@ -10,7 +11,7 @@ namespace Player
         [Header("Damage")]
         [SerializeField] private int _chargedDamageAttack;
 
-        [Header("Player")]
+        [Header("Player properties")]
         [SerializeField] private Animator _animator;
         [SerializeField] private BoxCollider2D _playerCollider;
 
@@ -20,6 +21,12 @@ namespace Player
         [Header("Health Manager")]
         [SerializeField] private HealthManager _healthManager;
 
+        [Header("Sounds")]
+        [SerializeField] private AudioSource _simpleAttackSound;
+        [SerializeField] private AudioSource _simpleAttackNoTargetSound;
+        [SerializeField] private AudioSource _chargedAttackSound;
+        [SerializeField] private AudioSource _chargedAttackNoTargetSound;
+        
         private RaycastHit2D _hit;
         private Enemy.Enemy _targetToAttack;
         private Rigidbody2D _rigidbody2D;
@@ -36,53 +43,59 @@ namespace Player
             {
                 IsTargetAlive();
 
-                General();
+                Attacks();
             }
         }
 
-        private void General()
+        private void Attacks()
         {
             _animator.SetBool(PlayerAnimations.GetChargedAttack(),
                 _animator.GetBool(PlayerAnimations.GetSimpleAttack()) && !Input.GetMouseButton(0));
             _animator.SetBool(PlayerAnimations.GetSimpleAttack(), Input.GetMouseButton(0));
 
-            if (_animator.GetBool(PlayerAnimations.GetSimpleAttack()) || _animator.GetBool(PlayerAnimations.GetChargedAttack()))
-                _rigidbody2D.velocity = Vector2.zero;
+            if ((_animator.GetBool(PlayerAnimations.GetSimpleAttack()) ||
+                 _animator.GetBool(PlayerAnimations.GetChargedAttack())) &&
+                _animator.GetBool(PlayerAnimations.GetIsGrounded()))
+            {
+                _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeAll;
+            }
+            else
+                _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeRotation;
         }
-
-        public int GetBaseDamage() => base._damage;
 
         private void SimpleAttackTrigger()
         {
             if (EnemyInSight())
             {
+                _simpleAttackSound.Play();
                 _targetToAttack = _hit.collider.GetComponent<Enemy.Enemy>();
-                _healthManager.MakeDamage(_targetToAttack, GetBaseDamage());
+                _healthManager.MakeDamage(_targetToAttack, base._damage);
             }
             else
+            {
                 _targetToAttack = null;
+                _simpleAttackNoTargetSound.Play();
+            }
         }
 
         private void ChargedAttackTrigger()
         {
             if (EnemyInSight())
             {
+                _chargedAttackSound.Play();
                 _targetToAttack = _hit.collider.GetComponent<Enemy.Enemy>();
                 _healthManager.MakeDamage(_targetToAttack, _chargedDamageAttack);
             }
             else
+            {
                 _targetToAttack = null;
+                _chargedAttackNoTargetSound.Play();
+            }
         }
 
-        private void DamagedTrigger()
-        {
-            _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeAll;
-        }
-        
-        private void DamagedTriggerEnded()
-        {
-            _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeRotation;
-        }
+        private void DamagedTrigger() => _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeAll;
+
+        private void DamagedTriggerEnded() => _rigidbody2D.constraints = RigidbodyConstraints2D.FreezeRotation;
 
         private void IsTargetAlive()
         {
@@ -90,9 +103,9 @@ namespace Player
             {
                 Animator targetAnimator = _targetToAttack.GetComponent<Animator>();
 
-                if (targetAnimator.GetBool(PlayerAnimations.GetIsAlive()))
+                if (targetAnimator.GetBool(EnemyAnimations.GetIsAlive()))
                 {
-                    targetAnimator.SetBool(PlayerAnimations.GetIsAlive(), false);
+                    targetAnimator.SetBool(EnemyAnimations.GetIsAlive(), false);
                     _targetToAttack.GetComponent<Rigidbody2D>().simulated = false;
                 }
             }

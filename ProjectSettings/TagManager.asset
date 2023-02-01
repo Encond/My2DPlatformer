@@ -43,3 +43,15 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: BossLayer
+    uniqueID: 3478133217
+    locked: 0
+  - name: UnderGroundWalls
+    uniqueID: 1861821215
+    locked: 0
+  - name: Darkness
+    uniqueID: 3130414553
+    locked: 0
+  - name: Text
+    uniqueID: 4168804239
+    locked: 0

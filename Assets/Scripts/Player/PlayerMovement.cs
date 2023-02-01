@@ -8,8 +8,9 @@ namespace Player
     [RequireComponent(typeof(Rigidbody2D))]
     public class PlayerMovement : MonoBehaviour
     {
-        [Header("Player")]
+        [Header("Player properties")]
         [SerializeField] private Player _player;
+        [SerializeField] private Rigidbody2D _rigidbody2D;
         [SerializeField] private float _movementSpeed = 10f;
         [SerializeField] private float _jumpForce = 20f;
         [SerializeField] private int _jumpsCountLimit = 2;
@@ -26,45 +27,49 @@ namespace Player
         [Header("Animations")]
         [SerializeField] private Animator _animator;
 
-        private Rigidbody2D _rigidbody2D;
+        [Header("Sounds")]
+        [SerializeField] private AudioSource _jump;
+        [SerializeField] private AudioSource _landing;
+
         private Vector2 _moveDirection;
 
-        private float _playerScaleX;
+        private Vector2 _playerScale;
         private bool _isOnGround;
         private bool _isLookingLeft;
+        private bool _landingSoundShouldPlay;
         private int _jumpsCount = 1;
+        private readonly int _normalizedMovementSpeed = 2;
 
         private void Start()
         {
-            _rigidbody2D = GetComponent<Rigidbody2D>();
-            _playerScaleX = _player.transform.localScale.x;
+            Vector2 tempLocalScale = _player.transform.localScale;
+            _playerScale.x = tempLocalScale.x;
+            _playerScale.y = tempLocalScale.y;
         }
 
         private void Update()
         {
-            if (!PauseMenu.GameIsPaused)
+            if (PauseMenu.GameIsPaused) return;
+            
+            if (_player.GetCurrentHealth() <= 0)
+                GameOver();
+            else
             {
-                if (!IsAlive()) return;
-                // else
-                // {
                 GetMovementInputs();
                 Jump();
-                // }
             }
         }
 
         private void FixedUpdate()
         {
-            if (!PauseMenu.GameIsPaused)
-            {
-                IsGrounded();
+            if (PauseMenu.GameIsPaused) return;
+            
+            IsGrounded();
 
-                if (!IsAlive()) return;
-                // else
-                // {
+            if (_player.GetCurrentHealth() <= 0)
+                GameOver();
+            else
                 Move();
-                // }
-            }
         }
 
         private void GetMovementInputs()
@@ -78,7 +83,7 @@ namespace Player
                 if (_rigidbody2D.velocity.magnitude <= _movementSpeed)
                     _moveDirection = -transform.right;
 
-                TurnThePlayer(-_playerScaleX);
+                TurnThePlayer(-_playerScale.x);
 
             }
             else if (Input.GetKey(_keyRight))
@@ -88,7 +93,7 @@ namespace Player
                 if (_rigidbody2D.velocity.magnitude <= _movementSpeed)
                     _moveDirection = transform.right;
 
-                TurnThePlayer(_playerScaleX);
+                TurnThePlayer(_playerScale.x);
             }
             else
             {
@@ -100,13 +105,15 @@ namespace Player
 
         }
 
-        private void Move() => _rigidbody2D.AddForce(_moveDirection * _movementSpeed * 2, ForceMode2D.Force);
+        private void Move() => _rigidbody2D.AddForce(_moveDirection * (_movementSpeed * _normalizedMovementSpeed), ForceMode2D.Force);
 
         private void Jump()
         {
-            if (_jumpsCount < _jumpsCountLimit && Input.GetKeyDown(_keyJump) && (_isOnGround || !_isOnGround))
+            if (_jumpsCount < _jumpsCountLimit && Input.GetKeyDown(_keyJump) &&
+                !_animator.GetBool(PlayerAnimations.GetSimpleAttack()) &&
+                !_animator.GetBool(PlayerAnimations.GetChargedAttack()))
             {
-                // SoundManager.Instance.PlaySound("Jump");
+                _jump.Play();
                 _jumpsCount++;
 
                 _animator.SetBool(PlayerAnimations.GetJumping(), true);
@@ -123,41 +130,53 @@ namespace Player
 
         private void IsGrounded()
         {
-            // if (!_isOnGround)
             _isOnGround = Physics2D.OverlapPoint(_groundCheckPosition.position, _whatIsGround);
-
+            
             _animator.SetBool(PlayerAnimations.GetIsGrounded(), _isOnGround);
 
             if (_isOnGround == false)
             {
                 _animator.SetBool(PlayerAnimations.GetFalling(), true);
+                _landingSoundShouldPlay = true;
             }
             else if (_isOnGround)
             {
+                if (_landingSoundShouldPlay)
+                {
+                    _landing.Play();
+                    _landingSoundShouldPlay = false;
+                }
+                
                 _animator.SetBool(PlayerAnimations.GetJumping(), false);
                 _animator.SetBool(PlayerAnimations.GetFalling(), false);
+                
                 _jumpsCount = 1;
             }
 
-            if (_player.transform.position.y < -10f)
+            if (_player.transform.position.y < -20f)
             {
-                if (SoundManager.Instance._isPlayingMainMusic && SoundManager.Instance._shouldPlayMusic)
-                {
-                    SoundManager.Instance.StopMusic();
-                    SoundManager.Instance.PlayUnderGroundMusic();
-                }
+                if (!SoundManager.Instance._isPlayingMainMusic || !SoundManager.Instance._shouldPlayMusic) return;
+                
+                SoundManager.Instance.StopMusic();
+                SoundManager.Instance.PlayUnderGroundMusic();
+            }
+            else
+            {
+                if (SoundManager.Instance._isPlayingMainMusic || !SoundManager.Instance._shouldPlayMusic) return;
+                
+                SoundManager.Instance.StopMusic();
+                SoundManager.Instance.PlayMainMusic();
             }
         }
 
         private void TurnThePlayer(float scaleX) =>
-            _player.gameObject.transform.localScale = new Vector2(scaleX, 1.5f);
+            _player.gameObject.transform.localScale = new Vector2(scaleX, _playerScale.y);
 
-        private bool IsAlive() => _player.IsAlive;
-
-        // private void Died()
-        // {
-        //     _animator.Play("Died");
-        //     gameObject.SetActive(IsAlive());
-        // }
+        private void GameOver()
+        {
+            _animator.Play(PlayerAnimations.GetIsAlive());
+            _animator.SetBool(PlayerAnimations.GetIsAlive(), false);
+            _player.gameObject.layer = 0;
+        }
     }
 }

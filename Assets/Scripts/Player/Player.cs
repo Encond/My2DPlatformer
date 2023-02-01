@@ -4,11 +4,10 @@ namespace Player
 {
     public class Player : MonoBehaviour
     {
+        [Header("Properties")]
         [SerializeField] private int _healthMax;
 
         private int _currentHealth;
-
-        public bool IsAlive => _currentHealth >= 0;
 
         private void Start() => _currentHealth = _healthMax;
 
@@ -18,7 +17,7 @@ namespace Player
         {
             int tempHealth = GetCurrentHealth() - damageAmount;
 
-            if (_currentHealth != tempHealth && tempHealth <= _healthMax && tempHealth > 0)
+            if (tempHealth <= _healthMax && tempHealth > 0)
                 _currentHealth = tempHealth;
             else if (tempHealth <= 0)
                 _currentHealth = 0;

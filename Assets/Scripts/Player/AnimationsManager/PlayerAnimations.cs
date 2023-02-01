@@ -4,7 +4,7 @@ namespace Player.AnimationsManager
 {
     public static class PlayerAnimations
     {
-        private static readonly int _isAlive = Animator.StringToHash("IsAlive");
+        private static readonly int _isAlive = Animator.StringToHash("Died");
         public static int GetIsAlive() => _isAlive;
         
         private static readonly int _simpleAttack = Animator.StringToHash("SimpleAttack");

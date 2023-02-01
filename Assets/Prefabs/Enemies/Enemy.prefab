@@ -54,6 +54,10 @@ MonoBehaviour:
   _playerLayer:
     serializedVersion: 2
     m_Bits: 256
+  _enemy: {fileID: 4503615028413006760}
+  _enemyRigidbody2D: {fileID: 415879547}
+  _collider: {fileID: 4503615028413006758}
+  _enemyAnimator: {fileID: 4503615028413006761}
 --- !u!1 &4503615028413006765
 GameObject:
   m_ObjectHideFlags: 0
